@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { format } from "date-fns";
 
@@ -20,6 +19,7 @@ export type EventType = {
   profileId: string;
   location?: string;
   description?: string;
+  recurring?: string;
 };
 
 export type TaskType = {
@@ -31,6 +31,7 @@ export type TaskType = {
   assignedTo: string;
   createdBy: string;
   points?: number;
+  recurring?: string;
 };
 
 export type MessageType = {
@@ -39,6 +40,23 @@ export type MessageType = {
   senderId: string;
   timestamp: Date;
   isAnnouncement: boolean;
+  isHandwritten?: boolean;
+};
+
+export type PollType = {
+  id: string;
+  question: string;
+  options: PollOptionType[];
+  createdBy: string;
+  createdAt: Date;
+  expiresAt?: Date;
+  isActive: boolean;
+};
+
+export type PollOptionType = {
+  id: string;
+  text: string;
+  votes: string[]; // Array of profileIds who voted for this option
 };
 
 type FamilyContextType = {
@@ -46,6 +64,7 @@ type FamilyContextType = {
   events: EventType[];
   tasks: TaskType[];
   messages: MessageType[];
+  polls: PollType[];
   activeProfile: ProfileType | null;
   selectedDate: Date;
   setSelectedDate: (date: Date) => void;
@@ -60,6 +79,9 @@ type FamilyContextType = {
   toggleTaskCompletion: (id: string) => void;
   addMessage: (message: Omit<MessageType, "id" | "timestamp">) => void;
   deleteMessage: (id: string) => void;
+  addPoll: (poll: Omit<PollType, "id" | "createdAt" | "isActive">) => void;
+  votePoll: (pollId: string, optionId: string, profileId: string) => void;
+  closePoll: (pollId: string) => void;
 };
 
 // Sample data
@@ -177,6 +199,36 @@ const SAMPLE_MESSAGES: MessageType[] = [
   },
 ];
 
+const SAMPLE_POLLS: PollType[] = [
+  {
+    id: "1",
+    question: "What should we have for dinner Friday?",
+    options: [
+      { id: "opt1", text: "Pizza", votes: ["1"] },
+      { id: "opt2", text: "Tacos", votes: ["3"] },
+      { id: "opt3", text: "Burgers", votes: ["4"] },
+      { id: "opt4", text: "Pasta", votes: ["2"] },
+    ],
+    createdBy: "1",
+    createdAt: new Date(today.getTime() - 12600000),
+    expiresAt: new Date(today.getTime() + 86400000),
+    isActive: true,
+  },
+  {
+    id: "2",
+    question: "Where should we go this weekend?",
+    options: [
+      { id: "opt1", text: "Beach", votes: ["3", "4"] },
+      { id: "opt2", text: "Movies", votes: ["1"] },
+      { id: "opt3", text: "Park", votes: ["2"] },
+    ],
+    createdBy: "2",
+    createdAt: new Date(today.getTime() - 172800000),
+    expiresAt: new Date(today.getTime() + 43200000),
+    isActive: true,
+  },
+];
+
 // Create context
 const FamilyContext = createContext<FamilyContextType | undefined>(undefined);
 
@@ -185,6 +237,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [events, setEvents] = useState<EventType[]>(SAMPLE_EVENTS);
   const [tasks, setTasks] = useState<TaskType[]>(SAMPLE_TASKS);
   const [messages, setMessages] = useState<MessageType[]>(SAMPLE_MESSAGES);
+  const [polls, setPolls] = useState<PollType[]>(SAMPLE_POLLS);
   const [activeProfile, setActiveProfile] = useState<ProfileType | null>(SAMPLE_PROFILES[0]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
@@ -256,6 +309,52 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setMessages(messages.filter((message) => message.id !== id));
   };
 
+  const addPoll = (poll: Omit<PollType, "id" | "createdAt" | "isActive">) => {
+    const newPoll = {
+      ...poll,
+      id: Date.now().toString(),
+      createdAt: new Date(),
+      isActive: true,
+    };
+    setPolls([newPoll, ...polls]);
+  };
+
+  const votePoll = (pollId: string, optionId: string, profileId: string) => {
+    setPolls(
+      polls.map((poll) => {
+        if (poll.id === pollId) {
+          const updatedOptions = poll.options.map((option) => {
+            if (option.id === optionId) {
+              // Remove vote from this profile if it exists on any other option
+              const updatedOptions = poll.options.map((opt) => ({
+                ...opt,
+                votes: opt.votes.filter((id) => id !== profileId),
+              }));
+              
+              // Add vote to this option
+              return {
+                ...option,
+                votes: [...option.votes, profileId],
+              };
+            }
+            return option;
+          });
+          
+          return { ...poll, options: updatedOptions };
+        }
+        return poll;
+      })
+    );
+  };
+
+  const closePoll = (pollId: string) => {
+    setPolls(
+      polls.map((poll) =>
+        poll.id === pollId ? { ...poll, isActive: false } : poll
+      )
+    );
+  };
+
   // For debugging
   useEffect(() => {
     console.log("Family Context Updated:", {
@@ -263,10 +362,11 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       events,
       tasks,
       messages,
+      polls,
       activeProfile,
       selectedDate: format(selectedDate, "yyyy-MM-dd"),
     });
-  }, [profiles, events, tasks, messages, activeProfile, selectedDate]);
+  }, [profiles, events, tasks, messages, polls, activeProfile, selectedDate]);
 
   return (
     <FamilyContext.Provider
@@ -275,6 +375,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         events,
         tasks,
         messages,
+        polls,
         activeProfile,
         selectedDate,
         setSelectedDate,
@@ -289,6 +390,9 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         toggleTaskCompletion,
         addMessage,
         deleteMessage,
+        addPoll,
+        votePoll,
+        closePoll,
       }}
     >
       {children}

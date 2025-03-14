@@ -61,8 +61,20 @@ const MessageList: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="mt-2 whitespace-pre-wrap">
-                    {message.content}
+                  <div className="mt-2">
+                    {message.isHandwritten ? (
+                      <div className="bg-yellow-50 p-2 rounded-md shadow-sm">
+                        <img 
+                          src={message.content} 
+                          alt="Handwritten note" 
+                          className="max-w-full"
+                        />
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap">
+                        {message.content}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

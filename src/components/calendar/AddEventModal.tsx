@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Users } from "lucide-react";
 import { useFamily } from "@/contexts/FamilyContext";
 import {
   Dialog,
@@ -36,6 +36,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 interface AddEventModalProps {
@@ -51,7 +52,8 @@ const formSchema = z.object({
   endTime: z.string().min(1, { message: "Please select an end time" }),
   location: z.string().optional(),
   description: z.string().optional(),
-  profileId: z.string({ required_error: "Please select a family member" }),
+  profileIds: z.array(z.string()).min(1, { message: "Please select at least one family member" }),
+  recurring: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -72,7 +74,8 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
       endTime: "13:00",
       location: "",
       description: "",
-      profileId: "",
+      profileIds: [],
+      recurring: "none",
     },
   });
 
@@ -85,14 +88,18 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     const [endHour, endMinute] = data.endTime.split(":").map(Number);
     endDateTime.setHours(endHour, endMinute);
 
-    addEvent({
-      title: data.title,
-      start: startDateTime,
-      end: endDateTime,
-      allDay: false,
-      profileId: data.profileId,
-      location: data.location,
-      description: data.description,
+    // Create events for all selected family members
+    data.profileIds.forEach(profileId => {
+      addEvent({
+        title: data.title,
+        start: startDateTime,
+        end: endDateTime,
+        allDay: false,
+        profileId: profileId,
+        location: data.location,
+        description: data.description,
+        recurring: data.recurring,
+      });
     });
 
     form.reset();
@@ -193,25 +200,73 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
 
             <FormField
               control={form.control}
-              name="profileId"
+              name="profileIds"
+              render={() => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Family Members
+                  </FormLabel>
+                  <div className="space-y-2">
+                    {profiles.map((profile) => (
+                      <FormField
+                        key={profile.id}
+                        control={form.control}
+                        name="profileIds"
+                        render={({ field }) => {
+                          return (
+                            <FormItem
+                              key={profile.id}
+                              className="flex flex-row items-start space-x-3 space-y-0"
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(profile.id)}
+                                  onCheckedChange={(checked) => {
+                                    return checked
+                                      ? field.onChange([...field.value, profile.id])
+                                      : field.onChange(
+                                          field.value?.filter(
+                                            (value) => value !== profile.id
+                                          )
+                                        );
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal flex items-center gap-2">
+                                <span>{profile.avatar}</span> {profile.name}
+                              </FormLabel>
+                            </FormItem>
+                          );
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="recurring"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Family Member</FormLabel>
+                  <FormLabel>Recurring</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a family member" />
+                        <SelectValue placeholder="Not recurring" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {profiles.map((profile) => (
-                        <SelectItem key={profile.id} value={profile.id}>
-                          {profile.avatar} {profile.name}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="none">Not recurring</SelectItem>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
