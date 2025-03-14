@@ -12,7 +12,11 @@ import {
 import { useFamily } from "@/contexts/FamilyContext";
 import { cn } from "@/lib/utils";
 
-const WeekView: React.FC = () => {
+interface WeekViewProps {
+  onDayClick: (date: Date) => void;
+}
+
+const WeekView: React.FC<WeekViewProps> = ({ onDayClick }) => {
   const { selectedDate, events } = useFamily();
 
   // Get all days in the week
@@ -41,9 +45,10 @@ const WeekView: React.FC = () => {
           <div 
             key={idx} 
             className={cn(
-              "text-center py-2 bg-muted/30", 
+              "text-center py-2 bg-muted/30 cursor-pointer hover:bg-muted/50", 
               isSameDay(day, new Date()) && "bg-primary/10"
             )}
+            onClick={() => onDayClick(day)}
           >
             <div className="font-medium">{format(day, "EEE")}</div>
             <div className="text-xs text-muted-foreground">{format(day, "MMM d")}</div>
@@ -65,9 +70,10 @@ const WeekView: React.FC = () => {
                 <div 
                   key={dayIdx} 
                   className={cn(
-                    "min-h-[60px] p-1",
+                    "min-h-[60px] p-1 cursor-pointer hover:bg-muted/20",
                     isSameDay(day, new Date()) && "bg-primary/5"
                   )}
+                  onClick={() => onDayClick(new Date(day.setHours(hour.getHours(), hour.getMinutes())))}
                 >
                   {dayHourEvents.map(event => {
                     const profileColor = event.profileId === "1" ? "family-blue" : 
@@ -82,6 +88,7 @@ const WeekView: React.FC = () => {
                           "mb-1 rounded px-2 py-1 text-xs text-white shadow",
                           `bg-${profileColor}`
                         )}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <div className="font-medium truncate">{event.title}</div>
                         <div className="text-xs opacity-90 truncate">

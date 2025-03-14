@@ -4,7 +4,11 @@ import { format, addHours, startOfDay } from "date-fns";
 import { useFamily } from "@/contexts/FamilyContext";
 import { cn } from "@/lib/utils";
 
-const DayView: React.FC = () => {
+interface DayViewProps {
+  onDayClick: (date: Date) => void;
+}
+
+const DayView: React.FC<DayViewProps> = ({ onDayClick }) => {
   const { selectedDate, events } = useFamily();
   
   // Create hour slots for the day (7am to 9pm)
@@ -46,7 +50,10 @@ const DayView: React.FC = () => {
               <div className="text-xs p-2 text-muted-foreground text-center">
                 {format(hour, "h:mm a")}
               </div>
-              <div className="min-h-[60px] p-1 relative">
+              <div 
+                className="min-h-[60px] p-1 relative cursor-pointer hover:bg-muted/20"
+                onClick={() => onDayClick(new Date(selectedDate.setHours(hour.getHours(), hour.getMinutes())))}
+              >
                 {hourEvents.map(event => (
                   <div 
                     key={event.id}
@@ -57,6 +64,7 @@ const DayView: React.FC = () => {
                         events.find(e => e.id === event.id)?.profileId === "3" ? "family-purple" : 
                         events.find(e => e.id === event.id)?.profileId === "4" ? "family-orange" : "family-blue" : "family-blue"}`
                     )}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <div className="font-medium">{event.title}</div>
                     <div className="text-xs opacity-90">

@@ -15,7 +15,11 @@ import { useFamily } from "@/contexts/FamilyContext";
 import { cn } from "@/lib/utils";
 import CalendarEvent from "./CalendarEvent";
 
-const MonthView: React.FC = () => {
+interface MonthViewProps {
+  onDayClick: (date: Date) => void;
+}
+
+const MonthView: React.FC<MonthViewProps> = ({ onDayClick }) => {
   const { selectedDate, events } = useFamily();
 
   // Get all days in the month
@@ -54,10 +58,11 @@ const MonthView: React.FC = () => {
             <div
               key={dayIdx}
               className={cn(
-                "calendar-day",
+                "calendar-day h-24 p-1 border border-border/50 hover:bg-muted/20 cursor-pointer",
                 !isCurrentMonth && "text-muted-foreground opacity-50",
-                isToday(day) && "calendar-day-today"
+                isToday(day) && "calendar-day-today bg-muted/30"
               )}
+              onClick={() => onDayClick(day)}
             >
               <div className="text-right text-sm">
                 {format(day, "d")}

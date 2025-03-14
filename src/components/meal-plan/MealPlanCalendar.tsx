@@ -2,6 +2,9 @@
 import React from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MealPlanCalendarProps {
   selectedDate: Date;
@@ -14,7 +17,16 @@ const MealPlanCalendar: React.FC<MealPlanCalendarProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Select a Date</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Select a Date</h2>
+        <div className="md:hidden">
+          <SidebarTrigger>
+            <Button variant="outline" size="icon">
+              <Menu className="h-4 w-4" />
+            </Button>
+          </SidebarTrigger>
+        </div>
+      </div>
       <Calendar
         mode="single"
         selected={selectedDate}
