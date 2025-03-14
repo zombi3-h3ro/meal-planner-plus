@@ -27,7 +27,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  email: z.string().email({ message: "Please enter a valid email address." }),
+  email: z.string().email({ message: "Please enter a valid email address." }).optional(),
   avatar: z.string(),
   color: z.string(),
 });
@@ -35,13 +35,13 @@ const profileFormSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 const ProfileSettings: React.FC = () => {
-  const { activeProfile, updateProfile } = useFamily();
+  const { activeProfile, profiles, setProfiles } = useFamily();
   const { toast } = useToast();
 
   // Use active profile data as default values
   const defaultValues: Partial<ProfileFormValues> = {
     name: activeProfile?.name || "",
-    email: activeProfile?.email || "",
+    email: "", // Email is not in the ProfileType, so default to empty string
     avatar: activeProfile?.avatar || "",
     color: activeProfile?.color || "family-blue",
   };
@@ -53,13 +53,20 @@ const ProfileSettings: React.FC = () => {
 
   function onSubmit(data: ProfileFormValues) {
     if (activeProfile) {
-      updateProfile({
-        ...activeProfile,
-        name: data.name,
-        email: data.email,
-        avatar: data.avatar,
-        color: data.color,
-      });
+      // Since there's no updateProfile function, we'll update the profiles array directly
+      const updatedProfiles = profiles.map(profile => 
+        profile.id === activeProfile.id 
+          ? { 
+              ...profile, 
+              name: data.name,
+              avatar: data.avatar,
+              color: data.color,
+              // Don't include email as it's not in the ProfileType
+            } 
+          : profile
+      );
+      
+      setProfiles(updatedProfiles);
       
       toast({
         title: "Profile updated",
@@ -115,7 +122,7 @@ const ProfileSettings: React.FC = () => {
                     <Input placeholder="your.email@example.com" {...field} />
                   </FormControl>
                   <FormDescription>
-                    Used for notifications and account recovery.
+                    Used for notifications and account recovery. (Note: Email is currently only saved in UI)
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
